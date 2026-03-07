@@ -1,0 +1,24 @@
+# Link2Pod dependencies
+
+# Web fetching
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Optional: Playwright for JavaScript-rendered pages
+playwright>=1.40.0
+
+# LLM processing
+# (uses requests directly, no extra deps for OpenRouter)
+
+# TTS - Kokoro (offline)
+kokoro-onnx>=1.0.0
+numpy>=1.24.0
+soundfile>=0.12.0
+
+# Optional: Qwen3 TTS (requires GPU)
+# pip install qwen-tts
+tqdm>=4.66.0
+
+# Optional: For MP3 export
+# pip install mutagen

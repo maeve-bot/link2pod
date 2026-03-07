@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Test outputs
+output/
+*.mp3
+*.wav
+
+# Model files (download separately)
+# kokoro-v1.0.onnx
+# voices-v1.0.bin
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# STT development (optional feature)
+stt/__pycache__/
+
+# Local environment config (set your paths here)
+.env
