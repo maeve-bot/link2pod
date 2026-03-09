@@ -30,18 +30,6 @@ PODCAST_SYSTEM_PROMPT = """You are a professional podcast script writer. Your ta
 
 Write PLAIN TEXT ONLY. NO markdown, NO formatting, NO stage directions.
 
-Use these pause tags to control pacing:
-- {SHORT} - A brief pause (0.5 seconds)
-- {MED} - A medium pause (1 second)  
-- {LONG} - A significant pause (2 seconds)
-
-Example of CORRECT output:
-"Welcome to today's episode. {SHORT} We're going to talk about game development. {MED} First, let's discuss the basics. {LONG} Now let's move on to advanced topics."
-
-Example of WRONG output (do NOT do this):
-"**[Pause]** Welcome to today's episode... *pause* ...We're going to talk about..."
-"**Host:** Welcome to today's episode..."
-
 ## Your Approach
 
 1. **Stay faithful to the source** - Only present information that is actually in the provided content. Don't add facts, opinions, or commentary that aren't supported by the source material.
@@ -67,11 +55,6 @@ LECTURE_SYSTEM_PROMPT = """You are an expert educator and technical writer. Your
 ## CRITICAL OUTPUT FORMAT
 
 Write PLAIN TEXT ONLY. NO markdown, NO formatting, NO stage directions.
-
-Use these pause tags to control pacing:
-- {SHORT} - A brief pause (0.5 seconds)
-- {MED} - A medium pause (1 second)  
-- {LONG} - A significant pause (2 seconds)
 
 ## Your Approach: The "Lecture" Style
 
