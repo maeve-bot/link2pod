@@ -11,8 +11,6 @@ import soundfile as sf
 
 from .base import TTSEngine
 from .processor import (
-    parse_transcript_with_pauses, 
-    strip_pause_tags, 
     DEFAULT_PAUSE_MS,
     SplitLevel,
     SPLIT_LEVEL_PAUSES,
@@ -119,11 +117,8 @@ class KokoroEngine(TTSEngine):
         Returns:
             Path to the generated audio file
         """
-        # Strip pause tags (now deprecated - pauses determined by chunking level)
-        clean_text = strip_pause_tags(text)
-        
         # Chunk text with split level tracking
-        chunks = self._chunk_text_with_levels(clean_text, max_size=1000)
+        chunks = self._chunk_text_with_levels(text, max_size=1000)
         
         # Synthesize each chunk with pauses between
         audio_arrays = []
