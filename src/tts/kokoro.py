@@ -10,7 +10,16 @@ import numpy as np
 import soundfile as sf
 
 from .base import TTSEngine
-from .processor import parse_transcript_with_pauses, strip_pause_tags, DEFAULT_PAUSE_MS
+from .processor import (
+    parse_transcript_with_pauses, 
+    strip_pause_tags, 
+    DEFAULT_PAUSE_MS,
+    SplitLevel,
+    SPLIT_LEVEL_PAUSES,
+    PARAGRAPH_PAUSE_MS,
+    SENTENCE_PAUSE_MS,
+    WORD_PAUSE_MS,
+)
 
 
 # Default paths (can be overridden via environment variables)
@@ -104,35 +113,36 @@ class KokoroEngine(TTSEngine):
         Synthesize text to speech audio file.
         
         Args:
-            text: Text to synthesize (may contain {SHORT}, {MED}, {LONG} pause tags)
+            text: Text to synthesize (pause tags are optional, now deprecated)
             output_path: Output wav file path
         
         Returns:
             Path to the generated audio file
         """
-        # Strip pause tags for chunking (we'll add our own pauses between chunks)
+        # Strip pause tags (now deprecated - pauses determined by chunking level)
         clean_text = strip_pause_tags(text)
         
-        # Chunk text: paragraph -> sentence -> word (larger chunks = better intonation)
-        chunks = self._chunk_text(clean_text, max_size=1000)
+        # Chunk text with split level tracking
+        chunks = self._chunk_text_with_levels(clean_text, max_size=1000)
         
         # Synthesize each chunk with pauses between
         audio_arrays = []
         sample_rate = None
         
-        for i, chunk in enumerate(chunks):
-            chunk = chunk.strip()
-            if not chunk:
+        for i, (chunk_text, split_level) in enumerate(chunks):
+            chunk_text = chunk_text.strip()
+            if not chunk_text:
                 continue
             
             # Synthesize this chunk
-            audio, sr = self._synthesize_single(chunk)
+            audio, sr = self._synthesize_single(chunk_text)
             audio_arrays.append(audio)
             sample_rate = sr
             
-            # Add pause between chunks (500ms default)
+            # Add pause based on split level (not between last chunk)
             if i < len(chunks) - 1 and sample_rate is not None:
-                pause_samples = int(sample_rate * DEFAULT_PAUSE_MS / 1000)
+                pause_ms = SPLIT_LEVEL_PAUSES.get(split_level, DEFAULT_PAUSE_MS)
+                pause_samples = int(sample_rate * pause_ms / 1000)
                 pause = np.zeros(pause_samples, dtype=np.float32)
                 audio_arrays.append(pause)
         
@@ -153,6 +163,93 @@ class KokoroEngine(TTSEngine):
         sf.write(output_path, audio_int16, sample_rate)
         
         return str(output_path)
+    
+    def _chunk_text_with_levels(self, text: str, max_size: int = 1000) -> list[tuple[str, str]]:
+        """
+        Split text into chunks with split level tracking for pause determination.
+        
+        Returns list of (text, split_level) tuples where split_level is:
+        - PARAGRAPH: split at double newline (1000ms pause)
+        - SENTENCE: split at .!? (800ms pause)  
+        - WORD: force split at max_size (500ms pause)
+        
+        Larger chunks = better intonation, so we prefer paragraphs > sentences > words.
+        """
+        import re
+        
+        chunks_with_levels = []
+        
+        # Step 1: Split by paragraphs (double newlines)
+        paragraphs = re.split(r'\n\s*\n', text)
+        
+        for para in paragraphs:
+            para = para.strip()
+            if not para:
+                continue
+            
+            para_len = len(para)
+            
+            # If paragraph fits within max_size, keep it whole
+            if para_len <= max_size:
+                chunks_with_levels.append((para, SplitLevel.PARAGRAPH))
+                continue
+            
+            # Step 2: Paragraph too long - split by sentences
+            sentence_endings = re.compile(r"(?<=[.!?])\s+")
+            sentences = sentence_endings.split(para)
+            
+            current_chunk = []
+            current_length = 0
+            
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                
+                sentence_len = len(sentence)
+                
+                # If adding this sentence would exceed limit, start new chunk
+                if current_length + sentence_len > max_size and current_chunk:
+                    chunks_with_levels.append((" ".join(current_chunk), SplitLevel.SENTENCE))
+                    current_chunk = []
+                    current_length = 0
+                
+                # If single sentence exceeds max_size, split by words
+                if sentence_len > max_size:
+                    # First, flush current chunk if any
+                    if current_chunk:
+                        chunks_with_levels.append((" ".join(current_chunk), SplitLevel.SENTENCE))
+                        current_chunk = []
+                        current_length = 0
+                    
+                    # Split long sentence by words
+                    words = sentence.split()
+                    word_chunk = []
+                    word_len = 0
+                    
+                    for word in words:
+                        word_len_inc = len(word) + 1  # +1 for space
+                        if word_len + word_len_inc > max_size and word_chunk:
+                            chunks_with_levels.append((" ".join(word_chunk), SplitLevel.WORD))
+                            word_chunk = []
+                            word_len = 0
+                        word_chunk.append(word)
+                        word_len += word_len_inc
+                    
+                    if word_chunk:
+                        current_chunk = word_chunk
+                        current_length = word_len
+                    continue
+                
+                # Normal sentence - add to current chunk
+                current_chunk.append(sentence)
+                current_length += sentence_len + 1
+            
+            # Flush remaining chunk
+            if current_chunk:
+                chunks_with_levels.append((" ".join(current_chunk), SplitLevel.SENTENCE))
+        
+        return chunks_with_levels if chunks_with_levels else [(text, SplitLevel.SENTENCE)]
     
     def _chunk_text(self, text: str, max_size: int = 1000) -> list[str]:
         """
