@@ -94,6 +94,8 @@ def main():
                         help="Output as WAV instead of MP3")
     parser.add_argument("--bitrate", default="192k",
                         help="MP3 bitrate (default: 192k)")
+    parser.add_argument("--lecture", action="store_true",
+                        help="Use lecture mode: conversational teaching style instead of literal reading")
     
     args = parser.parse_args()
     
@@ -124,6 +126,7 @@ def main():
     print(f"=== Link2Pod ===")
     print(f"Input: {input_type} - {input_display}")
     print(f"Engine: {engine_name}")
+    print(f"Mode: {'Lecture (teaching)' if args.lecture else 'Audiobook (reading)'}")
     if input_type == "URL":
         print(f"Playwright: {use_playwright}")
     print()
@@ -145,7 +148,7 @@ def main():
     print("\n=== STEP 2: LLM PROCESSING ===")
     try:
         # Use input as the reference for the transcript
-        transcript = generate_podcast_script(content, input_display)
+        transcript = generate_podcast_script(content, input_display, lecture_mode=args.lecture)
         print(f"Generated transcript: {len(transcript)} characters")
     except Exception as e:
         print(f"Error generating script: {e}")
