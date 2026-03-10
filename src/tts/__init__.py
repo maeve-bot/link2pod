@@ -2,7 +2,7 @@
 TTS module - factory function to create TTS engines.
 """
 
-from typing import Optional, Union
+from typing import Optional
 
 from .base import TTSEngine
 from .kokoro import KokoroEngine

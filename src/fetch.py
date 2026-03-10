@@ -2,10 +2,7 @@
 Web page fetching module.
 """
 
-import os
-import re
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 import requests
@@ -209,25 +206,6 @@ def extract_text_from_element(element: BeautifulSoup) -> str:
     
     # Join with double newlines between paragraphs
     return '\n\n'.join(texts)
-
-
-def get_page_title(soup: BeautifulSoup, url: str) -> str:
-    """Extract the page title."""
-    # Try <title> tag
-    title_tag = soup.find("title")
-    if title_tag:
-        return title_tag.get_text(strip=True)
-    
-    # Try <h1> tag
-    h1 = soup.find("h1")
-    if h1:
-        return h1.get_text(strip=True)
-    
-    # Fall back to URL
-    from urllib.parse import urlparse
-    return urlparse(url).netloc
-
-
 def fetch_local_file(file_path: str, max_length: int = 10000) -> str:
     """
     Read content from a local file (txt, md, or other text files).

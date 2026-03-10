@@ -154,31 +154,3 @@ Remember: Only use information from the provided content. Don't add external fac
     script = result["choices"][0]["message"]["content"]
     
     return script.strip()
-
-
-def generate_podcast_script_with_metadata(
-    content: str, 
-    source_url: str, 
-    title: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini"
-) -> dict:
-    """
-    Generate a podcast script with metadata.
-    
-    Returns a dict with:
-    - script: The podcast script text
-    - title: Suggested podcast title
-    - duration_estimate: Estimated audio duration in seconds
-    """
-    script = generate_podcast_script(content, source_url, model)
-    
-    # Estimate duration (average speaking rate ~150 words/min)
-    word_count = len(script.split())
-    duration_estimate = int((word_count / 150) * 60)
-    
-    return {
-        "script": script,
-        "title": title or f"Podcast: {source_url}",
-        "duration_estimate": duration_estimate,
-        "word_count": word_count
-    }

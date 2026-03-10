@@ -14,9 +14,6 @@ from .processor import (
     DEFAULT_PAUSE_MS,
     SplitLevel,
     SPLIT_LEVEL_PAUSES,
-    PARAGRAPH_PAUSE_MS,
-    SENTENCE_PAUSE_MS,
-    WORD_PAUSE_MS,
 )
 
 
@@ -245,92 +242,6 @@ class KokoroEngine(TTSEngine):
                 chunks_with_levels.append((" ".join(current_chunk), SplitLevel.SENTENCE))
         
         return chunks_with_levels if chunks_with_levels else [(text, SplitLevel.SENTENCE)]
-    
-    def _chunk_text(self, text: str, max_size: int = 1000) -> list[str]:
-        """
-        Split text into chunks with priority:
-        1. Paragraphs (double newlines) - natural pause points
-        2. Sentences (if paragraph > max_size)
-        3. Words (if sentence > max_size)
-        
-        This gives larger, more cohesive chunks (2-4 sentences) which helps
-        the TTS maintain better intonation and flow.
-        """
-        import re
-        
-        # Step 1: Split by paragraphs
-        paragraphs = re.split(r'\n\s*\n', text)
-        
-        chunks = []
-        
-        for para in paragraphs:
-            para = para.strip()
-            if not para:
-                continue
-            
-            para_len = len(para)
-            
-            # If paragraph fits within max_size, keep it whole
-            if para_len <= max_size:
-                chunks.append(para)
-                continue
-            
-            # Step 2: Paragraph too long - split by sentences
-            sentence_endings = re.compile(r"(?<=[.!?])\s+")
-            sentences = sentence_endings.split(para)
-            
-            current_chunk = []
-            current_length = 0
-            
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if not sentence:
-                    continue
-                
-                sentence_len = len(sentence)
-                
-                # If adding this sentence would exceed limit, start new chunk
-                if current_length + sentence_len > max_size and current_chunk:
-                    chunks.append(" ".join(current_chunk))
-                    current_chunk = []
-                    current_length = 0
-                
-                # If single sentence exceeds max_size, split by words
-                if sentence_len > max_size:
-                    # First, flush current chunk if any
-                    if current_chunk:
-                        chunks.append(" ".join(current_chunk))
-                        current_chunk = []
-                        current_length = 0
-                    
-                    # Split long sentence by words
-                    words = sentence.split()
-                    word_chunk = []
-                    word_len = 0
-                    
-                    for word in words:
-                        word_len_inc = len(word) + 1  # +1 for space
-                        if word_len + word_len_inc > max_size and word_chunk:
-                            chunks.append(" ".join(word_chunk))
-                            word_chunk = []
-                            word_len = 0
-                        word_chunk.append(word)
-                        word_len += word_len_inc
-                    
-                    if word_chunk:
-                        current_chunk = word_chunk
-                        current_length = word_len
-                    continue
-                
-                # Normal sentence - add to current chunk
-                current_chunk.append(sentence)
-                current_length += sentence_len + 1
-            
-            # Flush remaining chunk
-            if current_chunk:
-                chunks.append(" ".join(current_chunk))
-        
-        return chunks if chunks else [text]
     
     def synthesize_chunks(self, chunks: list[str], output_path: Optional[str] = None) -> str:
         """Synthesize multiple chunks and concatenate."""
